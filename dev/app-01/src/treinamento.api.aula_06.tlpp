@@ -1,0 +1,92 @@
+#include 'totvs.ch'
+#include 'tlpp-core.th'
+
+NAMESPACE treinamento.api
+
+/*/{Protheus.doc} U_GET_CLIENTES
+    Exemplo de API para listagem de clientes com passagem de parametros via query string.
+    @type  Function
+    @author Klaus Wolfgram
+    /*/
+    
+@get(endpoint='/treinamento/municipios',;
+description='Listagem de municipios com passagem de parametros via querystring')
+
+Function U_GET_ESTADOS as logical
+
+    Local lRPC          as logical
+    Local cUFAnt        as character
+    Local cAliasSQL     as character
+
+    Local jQueryStr as json
+    Local jResp     as json
+    Local jRespMun  as json
+
+    IF type('cEmpAnt') <> 'C'
+        rpcSetEnv('99','01')
+        lRPC        := .T.
+    EndIF  
+
+    cAliasSQL       := getNextAlias()
+
+    //Construindo a consulta
+    BeginSql Alias cAliasSQL
+ 
+        //Definindo a query que será executada    
+        SELECT X5_CHAVE
+             , X5_DESCRI
+             , CC2_CODMUN
+             , CC2_MUN
+        FROM %table:SX5% SX5
+           , %table:CC2% CC2 
+        WHERE X5_FILIAL  = %xFilial:SX5%
+          AND CC2_FILIAL = %xFilial:CC2% 
+          AND CC2_EST    = X5_CHAVE
+          AND X5_TABELA  = %Exp:'12'%
+          AND SX5.%notDel%
+          AND CC2.%notDel%
+        ORDER BY X5_CHAVE
+
+    EndSql
+
+    jResp                   := jsonObject():new()
+    jResp['estados']        := array(0)
+
+    jRespMun                := jsonObject():new()
+    jRespMun['municipios']  := array(0)
+
+    While .not. (cAliasSQL)->(eof())
+        
+        jEstados              := jsonObject():new()
+        jEstados['Estado'   ] := (cAliasSQL)->(X5_CHAVE           )
+        jEstados['nome'     ] := (cAliasSQL)->(alltrim(X5_DESCRI ))
+        
+        jRespMun['municipios'] := array(0)
+
+        cUFAnt := (cAliasSQL)->(X5_CHAVE)
+    
+        While .not. (cAliasSQL)->(eof()) .and. cUFAnt == (cAliasSQL)->(X5_CHAVE) 
+
+            jMunicipios              := jsonObject():new()
+            jMunicipios['codigo'   ] := (cAliasSQL)->(alltrim(CC2_CODMUN))
+            jMunicipios['Municipio'] := (cAliasSQL)->(alltrim(CC2_MUN   ))
+
+            aadd(jRespMun['municipios'], jMunicipios)  
+
+            (cAliasSQL)->(dbSkip())
+        
+        EndDo
+
+        aadd(jResp['estados'], {jEstados, jRespMun['municipios']})  
+
+    End
+
+    (cAliasSQL)->(dbCloseArea())
+
+    oRest:setResponse(jResp:toJson())
+
+    IF lRPC
+        rpcClearEnv()
+    EndIF
+    
+Return .T.
