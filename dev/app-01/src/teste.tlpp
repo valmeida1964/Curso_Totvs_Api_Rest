@@ -1,0 +1,19 @@
+#Include 'tlpp-core.th'
+
+/*/{Protheus.doc} Teste
+    (long_description)
+    @type  Function
+    @author user
+    @since 22/10/2025
+    @version version
+    @param param_name, param_type, param_descr
+    @return return_var, return_type, return_description
+    @example
+    (examples)
+    @see (links_or_references)
+ /*/
+Function U_Teste
+
+    MsgInfo("Configurando o VsCode", "Protheus 12.1.2410")
+
+Return 
